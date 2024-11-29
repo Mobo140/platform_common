@@ -5,8 +5,8 @@ import (
 
 	"github.com/Mobo140/platform_common/pkg/db"
 	"github.com/Mobo140/platform_common/pkg/db/pg"
-	"github.com/jackc/pgx/v4"
 
+	"github.com/jackc/pgx/v4"
 	"github.com/pkg/errors"
 )
 
