@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/Mobo140/platform_common/pkg/db"
 	"github.com/Mobo140/platform_common/pkg/db/prettier"
@@ -18,7 +19,8 @@ var _ db.DB = (*pg)(nil)
 type key string
 
 const (
-	TxKey key = "tx"
+	TxKey        key = "tx"
+	queryTimeout     = 5 * time.Second
 )
 
 type pg struct {
@@ -31,6 +33,9 @@ func NewDB(dbc *pgxpool.Pool) *pg { //nolint:revive // it's ok
 
 func (p *pg) ScanOneContext(ctx context.Context, dest interface{}, q db.Query, args ...interface{}) error {
 	logQuery(ctx, q, args...)
+
+	ctx, cancel := context.WithTimeout(ctx, queryTimeout)
+	defer cancel()
 
 	row, err := p.QueryContext(ctx, q, args...)
 	if err != nil {
@@ -52,6 +57,9 @@ func (p *pg) QueryContext(ctx context.Context, q db.Query, args ...interface{}) 
 func (p *pg) ScanAllContext(ctx context.Context, dest interface{}, q db.Query, args ...interface{}) error {
 	logQuery(ctx, q, args...)
 
+	ctx, cancel := context.WithTimeout(ctx, queryTimeout)
+	defer cancel()
+
 	rows, err := p.QueryContext(ctx, q, args...)
 	if err != nil {
 		return err
@@ -62,6 +70,9 @@ func (p *pg) ScanAllContext(ctx context.Context, dest interface{}, q db.Query, a
 
 func (p *pg) ExecContext(ctx context.Context, q db.Query, args ...interface{}) (pgconn.CommandTag, error) {
 	logQuery(ctx, q, args...)
+
+	ctx, cancel := context.WithTimeout(ctx, queryTimeout)
+	defer cancel()
 
 	tx, ok := ctx.Value(TxKey).(pgx.Tx)
 	if ok {
@@ -81,6 +92,9 @@ func (p *pg) QueryRowContext(ctx context.Context, q db.Query, args ...interface{
 }
 
 func (p *pg) Ping(ctx context.Context) error {
+	ctx, cancel := context.WithTimeout(ctx, queryTimeout)
+	defer cancel()
+
 	conn, err := p.dbc.Acquire(ctx)
 	if err != nil {
 		return err
